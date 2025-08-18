@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Construction Project Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header><h1>Construction Project Management</h1></header>
+
+  <section class="auth">
+    <div class="card">
+      <h2>Register</h2>
+      <input id="regUsername" placeholder="Username" />
+      <input id="regPassword" type="password" placeholder="Password" />
+      <button onclick="register()">Register</button>
+    </div>
+
+    <div class="card">
+      <h2>Login</h2>
+      <input id="loginUsername" placeholder="Username" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+    </div>
+  </section>
+
+  <section class="app card">
+    <h2>Add Task</h2>
+    <form id="taskForm">
+      <input id="taskName" placeholder="Task name" required />
+      <input id="taskCost" type="number" placeholder="Cost" min="0" step="0.01" required />
+      <input id="taskDeadline" type="date" required />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <h2>Tasks</h2>
+    <div class="table-wrap">
+      <table id="taskTable">
+        <thead>
+          <tr><th>Name</th><th>Cost (R)</th><th>Deadline</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="total">Total Cost: <span id="totalCost">R0</span></p>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>

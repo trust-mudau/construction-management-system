@@ -1,0 +1,48 @@
+:root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent-2:#3b82f6; }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+  background: linear-gradient(180deg, #0b1220, #0f172a);
+  color: var(--text); padding: 24px;
+}
+
+header h1 { margin: 0 0 16px; font-size: 28px; }
+
+.card {
+  background: linear-gradient(180deg, #0f172a, #0b1220);
+  border: 1px solid #1f2937;
+  border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.auth { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 16px; margin-bottom: 16px; }
+.auth h2, .app h2 { margin-top: 0; }
+
+.app { margin-top: 16px; }
+
+input, button, table {
+  font-size: 15px;
+}
+
+input {
+  width: 100%; padding: 10px 12px; margin: 6px 0;
+  background: #0b1220; border: 1px solid #1f2937; border-radius: 10px; color: var(--text);
+}
+
+button {
+  padding: 10px 14px; border-radius: 10px; border: 1px solid #1f2937;
+  background: linear-gradient(180deg, #0b1220, #0f172a); color: var(--text);
+  cursor: pointer; transition: transform .05s ease, border-color .2s;
+}
+button:hover { border-color: #334155; }
+button:active { transform: scale(0.98); }
+
+.table-wrap { overflow-x: auto; margin-top: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 8px; border-bottom: 1px solid #1f2937; text-align: left; }
+th { color: var(--muted); font-weight: 600; }
+td button { margin-right: 6px; }
+td button:nth-child(1){ border-color:#1f2937; }
+td button:nth-child(2){ border-color:#1f2937; }
+
+.total { margin-top: 10px; font-weight: 600; }
