@@ -1,11 +1,27 @@
-// During development:
-const API_URL = "http://localhost:5000/api";
+const API_URL = `${(window.CONSTRUCTION_API_URL || "http://localhost:5000").replace(/\/$/, "")}/api`;
 
-let token = "";
+let token = sessionStorage.getItem("constructionToken") || "";
 
 // --- Helpers ---
 function authHeader() {
   return { Authorization: `Bearer ${token}` };
+}
+
+function setStatus(message, kind = "info") {
+  const status = document.getElementById("status");
+  status.textContent = message;
+  status.dataset.kind = kind;
+}
+
+async function request(path, options = {}) {
+  const res = await fetch(`${API_URL}${path}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    token = "";
+    sessionStorage.removeItem("constructionToken");
+  }
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
 function setTotal(cost) {
   document.getElementById("totalCost").textContent = `R${cost.toFixed(2)}`;
@@ -15,52 +31,63 @@ function setTotal(cost) {
 async function register() {
   const username = document.getElementById("regUsername").value.trim();
   const password = document.getElementById("regPassword").value;
-  const res = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  alert(data.message || data.error || "Unknown response");
+  if (!username || password.length < 8) {
+    setStatus("Enter a username and a password of at least 8 characters.", "error");
+    return;
+  }
+
+  try {
+    const data = await request("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    setStatus(data.message, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 }
 
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value;
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  if (data.token) {
+  try {
+    const data = await request("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
     token = data.token;
+    sessionStorage.setItem("constructionToken", token);
     await fetchTasks();
-    alert("✅ Logged in");
-  } else {
-    alert(data.error || "Login failed");
+    setStatus("Logged in successfully.", "success");
+  } catch (error) {
+    setStatus(error.message, "error");
   }
 }
 
 // --- Tasks ---
 async function fetchTasks() {
-  const res = await fetch(`${API_URL}/tasks`, { headers: authHeader() });
-  const tasks = await res.json();
-  renderTasks(tasks);
+  try {
+    const tasks = await request("/tasks", { headers: authHeader() });
+    renderTasks(tasks);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 }
 
 async function addTask(name, cost, deadline) {
-  await fetch(`${API_URL}/tasks`, {
+  await request("/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({ name, cost, deadline })
   });
-  fetchTasks();
+  await fetchTasks();
 }
 
 async function deleteTask(id) {
-  await fetch(`${API_URL}/tasks/${id}`, { method: "DELETE", headers: authHeader() });
-  fetchTasks();
+  await request(`/tasks/${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeader() });
+  await fetchTasks();
 }
 
 async function editTask(id) {
@@ -72,12 +99,17 @@ async function editTask(id) {
   if (deadline === null) return;
 
   const cost = Number(costStr);
-  await fetch(`${API_URL}/tasks/${id}`, {
+  if (!name.trim() || !Number.isFinite(cost) || cost < 0 || !deadline) {
+    setStatus("Enter a valid task name, non-negative cost, and deadline.", "error");
+    return;
+  }
+
+  await request(`/tasks/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({ name, cost, deadline })
   });
-  fetchTasks();
+  await fetchTasks();
 }
 
 // --- Render ---
@@ -88,15 +120,24 @@ function renderTasks(tasks) {
 
   tasks.forEach((t) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${t.name}</td>
-      <td>${Number(t.cost).toFixed(2)}</td>
-      <td>${new Date(t.deadline).toLocaleDateString()}</td>
-      <td>
-        <button onclick="editTask('${t._id}')">Edit</button>
-        <button onclick="deleteTask('${t._id}')">Delete</button>
-      </td>
-    `;
+    const nameCell = document.createElement("td");
+    const costCell = document.createElement("td");
+    const deadlineCell = document.createElement("td");
+    const actionsCell = document.createElement("td");
+    const editButton = document.createElement("button");
+    const deleteButton = document.createElement("button");
+
+    nameCell.textContent = t.name;
+    costCell.textContent = Number(t.cost).toFixed(2);
+    deadlineCell.textContent = new Date(t.deadline).toLocaleDateString();
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.addEventListener("click", () => editTask(t._id).catch((error) => setStatus(error.message, "error")));
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => deleteTask(t._id).catch((error) => setStatus(error.message, "error")));
+    actionsCell.append(editButton, deleteButton);
+    tr.append(nameCell, costCell, deadlineCell, actionsCell);
     tbody.appendChild(tr);
   });
 
@@ -104,12 +145,24 @@ function renderTasks(tasks) {
 }
 
 // --- Form submit ---
-document.getElementById("taskForm").addEventListener("submit", (e) => {
+document.getElementById("taskForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("taskName").value.trim();
   const cost = Number(document.getElementById("taskCost").value);
   const deadline = document.getElementById("taskDeadline").value;
-  if (!name || isNaN(cost) || !deadline) return alert("Fill all fields");
-  addTask(name, cost, deadline);
-  e.target.reset();
+  if (!name || !Number.isFinite(cost) || cost < 0 || !deadline) {
+    setStatus("Fill in all task fields with valid values.", "error");
+    return;
+  }
+  try {
+    await addTask(name, cost, deadline);
+    e.target.reset();
+    setStatus("Task added.", "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 });
+
+document.getElementById("registerButton").addEventListener("click", register);
+document.getElementById("loginButton").addEventListener("click", login);
+if (token) fetchTasks();
