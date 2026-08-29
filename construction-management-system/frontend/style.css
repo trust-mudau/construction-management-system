@@ -36,6 +36,11 @@ button {
 }
 button:hover { border-color: #334155; }
 button:active { transform: scale(0.98); }
+button:disabled { cursor: not-allowed; opacity: .55; }
+
+.status { min-height: 1.5rem; margin: 0 0 12px; color: var(--muted); }
+.status[data-kind="success"] { color: #86efac; }
+.status[data-kind="error"] { color: #fca5a5; }
 
 .table-wrap { overflow-x: auto; margin-top: 8px; }
 table { width: 100%; border-collapse: collapse; }
